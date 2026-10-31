@@ -1,0 +1,98 @@
+<title>Warrenpoint Undead</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700&family=Rubik+Mono+One&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#eef2f5;--dim:#9fb0bd;--acc:#43f0ff;--acc2:#ff3d8b;--bad:#ff5a4a;--panel:rgba(10,12,18,.86);--line:rgba(180,210,230,.22);--bg:#07090d;
+  --display:"Rubik Mono One","Arial Black",Impact,sans-serif;--body:"Barlow","Segoe UI",system-ui,sans-serif;color-scheme:dark}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:var(--body);overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}
+[hidden]{display:none!important}
+canvas#view{position:fixed;inset:0;width:100%;height:100%;display:block}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;backdrop-filter:blur(6px)}
+#title{position:fixed;inset:0;overflow:auto;display:flex;justify-content:center;align-items:flex-start;padding:28px 16px;box-sizing:border-box;background:radial-gradient(ellipse at 50% 0%,rgba(255,90,40,.18),transparent 60%),rgba(4,6,10,.55)}
+#title .wrap{max-width:860px;width:100%;padding:22px 22px 18px;box-sizing:border-box}
+h1{font-family:var(--display);font-size:clamp(26px,6vw,52px);margin:0 0 4px;letter-spacing:.02em;line-height:1.05;color:#fff;text-shadow:0 0 18px rgba(67,240,255,.35)}
+h1 span{color:var(--acc2)}
+.tag{color:var(--dim);margin:0 0 16px;font-size:15px;line-height:1.45}
+h2{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--acc);margin:18px 0 8px}
+.missions{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.mis{display:flex;flex-direction:column;justify-content:flex-start;text-align:left;font:inherit;color:inherit;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer}
+.mis b{display:block;font-size:16px;margin-bottom:3px}.mis i{font-style:normal;color:var(--dim);font-size:13.5px;line-height:1.35;display:block}
+.mis span{display:block;margin-top:6px;font-size:12px;color:var(--acc)}
+.mis[aria-pressed="true"]{border-color:var(--acc);background:rgba(67,240,255,.1);box-shadow:0 0 0 1px var(--acc) inset}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg{font:inherit;font-size:14px;color:var(--ink);background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:999px;padding:7px 14px;cursor:pointer}
+.seg[aria-pressed="true"]{background:var(--acc);color:#04141a;border-color:var(--acc);font-weight:700}
+.go{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.btn{font:700 16px var(--body);letter-spacing:.04em;padding:13px 22px;border-radius:12px;border:0;cursor:pointer;color:#04141a;background:var(--acc)}
+.btn.alt{background:var(--acc2);color:#fff}.btn:disabled{opacity:.4;cursor:default}
+.help{color:var(--dim);font-size:13.5px;line-height:1.55;margin-top:14px}
+.help b{color:var(--ink);font-weight:600}
+#hud{position:fixed;inset:0;pointer-events:none}
+#hudTL{position:absolute;left:16px;top:14px;width:min(300px,60vw)}
+.bar{height:12px;border-radius:7px;background:rgba(255,255,255,.12);overflow:hidden;margin:4px 0 9px;border:1px solid rgba(255,255,255,.15)}
+.bar i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#ff4a4a,#ff9a5a);transition:width .12s}
+#heatBar i{background:linear-gradient(90deg,#43f0ff,#b46bff,#ff3d8b)}
+.lbl{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);display:flex;justify-content:space-between}
+#hudTR{position:absolute;right:16px;top:14px;text-align:right;font-size:14px;line-height:1.5;text-shadow:0 1px 3px #000}
+#hudTR b{font-size:22px;font-family:var(--display);color:#fff}
+#obj{position:absolute;left:50%;top:14px;transform:translateX(-50%);text-align:center;font-weight:700;font-size:15px;text-shadow:0 1px 4px #000;max-width:60vw}
+#obj small{display:block;font-weight:400;color:var(--dim);font-size:13px}
+#arrow{position:absolute;left:50%;top:62px;width:34px;height:34px;margin-left:-17px;filter:drop-shadow(0 0 6px rgba(67,240,255,.7))}
+#msg{position:absolute;left:50%;top:34%;transform:translate(-50%,-50%);font-family:var(--display);font-size:clamp(22px,5vw,44px);color:#fff;text-shadow:0 0 18px rgba(255,61,139,.8);text-align:center;opacity:0;transition:opacity .25s}
+#cross{position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border:2px solid rgba(67,240,255,.75);border-radius:50%;box-sizing:border-box}
+#cross::after{content:"";position:absolute;left:50%;top:50%;width:4px;height:4px;margin:-2px;background:#43f0ff;border-radius:50%}
+#vign{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 55%,rgba(200,0,20,.55));opacity:0;transition:opacity .15s}
+#map{position:absolute;right:16px;bottom:16px;width:150px;height:150px;border-radius:50%;border:1px solid var(--line);background:rgba(5,8,12,.6)}
+#touch{position:fixed;inset:0;pointer-events:none}
+#touch .stick{position:absolute;left:22px;bottom:26px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.07);border:1px solid var(--line);pointer-events:auto}
+#touch .stick .knob{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px;border-radius:50%;background:rgba(67,240,255,.35)}
+#touch .look{position:absolute;right:0;top:0;width:58%;height:100%;pointer-events:auto}
+#touch button{position:absolute;pointer-events:auto;font:700 14px var(--body);color:#fff;border-radius:50%;border:1px solid var(--line);background:rgba(255,61,139,.45)}
+#tFire{right:26px;bottom:60px;width:92px;height:92px}
+#tRun{right:132px;bottom:30px;width:64px;height:64px;background:rgba(67,240,255,.3)!important}
+#tJump{right:30px;bottom:170px;width:84px;height:84px;background:rgba(255,122,34,.75)!important;font-size:16px!important}
+#tPause{right:16px;top:auto;bottom:178px;width:52px;height:52px;background:rgba(255,255,255,.12)!important;font-size:12px}
+#end{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;background:rgba(3,4,8,.6)}
+#end .panel{max-width:460px;width:100%;padding:22px;text-align:center}
+#end h2{font-family:var(--display);font-size:28px;letter-spacing:0;text-transform:none;color:#fff;margin:4px 0 10px}
+#end table{margin:10px auto 6px;border-collapse:collapse;font-size:15px}#end td{padding:4px 12px;text-align:left}#end td+td{text-align:right;font-weight:700}
+#load{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);font-size:15px;color:var(--dim)}
+body.touchui #map{top:84px;bottom:auto;right:14px;width:120px;height:120px}
+body.touchui #hudTR{top:12px}
+body.lefty #touch .stick{left:auto;right:22px}body.lefty #touch .look{right:auto;left:0}
+body.lefty #tFire{right:auto;left:26px}body.lefty #tRun{right:auto;left:132px}body.lefty #tJump{right:auto;left:30px}
+.lab{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:9px}
+.up{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:13.5px;color:var(--dim);line-height:1.35}
+.up b{display:block;color:var(--ink);font-size:15px;margin-bottom:2px}.pips{display:flex;gap:4px;margin:7px 0}.pips i{flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.12)}.pips i.on{background:var(--acc)}
+.up button{font:700 13px var(--body);padding:7px 10px;border-radius:9px;border:0;background:var(--acc2);color:#fff;cursor:pointer;width:100%}.up button:disabled{opacity:.35;cursor:default}
+@media (max-width:600px){#map{width:110px;height:110px}#hudTR{font-size:12px}#hudTR b{font-size:17px}}
+</style>
+<canvas id="view"></canvas>
+<div id="hud" hidden>
+  <div id="hudTL"><div class="lbl"><span>Health</span><span id="hpN">100</span></div><div class="bar" id="hpBar"><i></i></div>
+    <div class="lbl"><span id="heatL">Laser heat</span><span id="heatN">0%</span></div><div class="bar" id="heatBar"><i style="width:0"></i></div></div>
+  <div id="obj"></div>
+  <svg id="arrow" viewBox="0 0 34 34"><path d="M17 2 L30 30 L17 23 L4 30 Z" fill="#43f0ff"/></svg>
+  <div id="hudTR"><b id="hK">0</b> lasered<br><span id="hT">0:00</span></div>
+  <div id="cross"></div><div id="vign"></div><div id="msg"></div>
+  <canvas id="map" width="300" height="300"></canvas>
+</div>
+<div id="touch" hidden><div class="look" id="tLook"></div><div class="stick" id="tStick"><span class="knob"></span></div><button id="tRun">RUN</button><button id="tFire">FIRE</button><button id="tJump" hidden>JUMP</button><button id="tPause">MENU</button></div>
+<div id="title"><div class="wrap panel">
+  <h1>WARRENPOINT <span>UNDEAD</span></h1>
+  <p class="tag" style="color:#ff9a3a;font-weight:700;margin-bottom:6px">🎃 Halloween night in Warrenpoint</p><p class="tag">Something has got out, and the whole town is walking again. You've the lab's experimental laser and not much else. Get across Warrenpoint's real streets to the extraction point before the hordes get you. Your pulsed laser fires ten hard pulses a second: keep it cool, because if it overheats you're defenceless. Zap the ghosts for bonus credits.</p>
+  <h2>Choose a mission</h2><div class="missions" id="missions"></div>
+  <h2>Level</h2><div id="diff"></div>
+  <h2>Time of day</h2><div class="row" id="tod"></div>
+  <h2>Movement</h2><div class="row" id="move"></div>
+  <h2>Controls</h2><div class="row" id="hand"></div>
+  <h2>VR</h2><div class="row" id="vrturn"></div><div class="row" id="vrhud" style="margin-top:8px"></div>
+  <h2>Weather</h2><div class="row" id="storm"></div>
+  <h2>Music</h2><div class="row" id="music"></div>
+  <h2 id="labH">The lab</h2><p class="help" style="margin:0 0 8px">Spend the credits you earn on missions on upgrades for the laser and yourself. They stay with you.</p><div class="lab" id="lab"></div>
+  <div class="go"><button class="btn" id="bPlay" disabled>Loading the town…</button><button class="btn alt" id="bVR" hidden>Enter VR</button><button class="btn alt" id="bBonus" style="background:#ff7a22">🚁 Play the bonus round</button></div>
+  <p class="help" id="help"></p>
+</div></div>
+<div id="end" hidden><div class="panel"><div id="endK" style="color:var(--acc);letter-spacing:.14em;font-size:12px;text-transform:uppercase"></div><h2 id="endH"></h2><table id="endT"></table>
+  <p id="endC" style="color:var(--acc);font-weight:700;margin:6px 0 0"></p><div class="go" style="justify-content:center"><button class="btn" id="bAgain">Try again</button><button class="btn alt" id="bLab">Upgrades</button><button class="btn alt" id="bMenu" style="background:#33394a">Missions</button></div></div></div>
+<div id="load">Loading Warrenpoint…</div>
