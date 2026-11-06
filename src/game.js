@@ -116,28 +116,58 @@ function whistledown(x,z,ry){const w=36,h=11,d=16;const g=new THREE.Group();cons
   SOLIDS.push({box:1,x,y,z,ry,w,d,h});g.position.set(x,y,z);g.rotation.y=ry;SR.add(g);for(const t of [-14,0,14])LMPOS.push([x+r[0]*t,z+r[1]*t]);LMDBG.push(['THE WHISTLEDOWN',x,z,ry,d]);}
 function warrenpointBaths(x0,z0){const sd=(x,z)=>sdWater(x,z);let gx=sd(x0+2,z0)-sd(x0-2,z0),gz=sd(x0,z0+2)-sd(x0,z0-2);let L=Math.hypot(gx,gz)||1;const ax=-gx/L,az=-gz/L;
   let sx=x0,sz=z0;for(let k=0;k<200&&sd(sx,sz)>0;k++){sx+=ax;sz+=az;}const yP=Math.max(groundH(sx-ax*6,sz-az*6),2.6);
-  const g=new THREE.Group();g.position.set(sx-ax*2,0,sz-az*2);g.rotation.y=Math.atan2(ax,az);
-  const conc=lam({map:TX.stone,color:0xe6e2d8}),wall=lam({map:TX.stone,color:0xbab4a8}),white=lam({color:0xf4f2ec}),green=lam({color:0x1f5c58}),water=lam({color:0x3fa6b4}),slip=lam({color:0x8fd3d8}),iron=lam({color:0x1c1c1c}),copper=lam({color:0x6fa58f});
-  const B=(w,h,d,m,x,y,z,ry=0)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);o.rotation.y=ry;g.add(o);return o;};
-  const deckY=yP-.1,lowY=yP-1.6;
-  // the pier: upper deck down the middle, with a lower deck either side carrying the bathing boxes
-  B(7,deckY+1.5,48,conc,0,(deckY-1.5)/2,24);B(2.2,lowY+1.5,46,wall,-4.6,(lowY-1.5)/2,24);B(2.2,lowY+1.5,46,wall,4.6,(lowY-1.5)/2,24);
-  for(const sdn of [-1,1])for(let a=3;a<46;a+=2.1){const c=B(1.7,2.1,1.5,white,sdn*4.6,lowY+1.05,a);const dr=B(.05,1.7,.9,[lam({color:0x2a4f8c}),lam({color:0x8c1e24})][((a/2.1)|0)%2],sdn*3.73,lowY+.95,a);}
-  for(const sdn of [-1,1])for(let a=0;a<48;a+=1.6)B(.06,1.0,.06,green,sdn*3.4,deckY+.5,a);for(const sdn of [-1,1])B(.06,.06,48,green,sdn*3.4,deckY+1,24);
-  // the two baths: sea walls round each pool, the water held in at mid tide, a shallow slip at the landward end
-  const pool=(side,len)=>{const b0=5.8,b1=b0+12.2,bc=side*(b0+b1)/2;B(1.2,2.6,len+1.2,wall,side*(b1+.6),.3,6+len/2);B(13.4,2.6,1.2,wall,bc,.3,6+len+.6);
-    const w=new THREE.Mesh(new THREE.PlaneGeometry(12.2,len),water);w.rotation.x=-Math.PI/2;w.position.set(bc,.95,6+len/2);g.add(w);
-    const sl=new THREE.Mesh(new THREE.PlaneGeometry(12.2,5),slip);sl.rotation.x=-Math.PI/2;sl.position.set(bc,.97,8.5);g.add(sl);
-    for(let k=0;k<4;k++)B(.08,1.2,.08,iron,side*b0+side*(k*3.5+1.5),1.9,6+len+.7);};
-  pool(1,36.6);pool(-1,24.4);
-  // entrance from Marine Road: ornamental gates between two domed kiosks, and the name over the gate
-  for(const sdn of [-1,1]){B(3,3,3,white,sdn*4.2,yP+1.5,-1.5);const dm=new THREE.Mesh(new THREE.SphereGeometry(1.7,12,8,0,Math.PI*2,0,Math.PI/2),copper);dm.position.set(sdn*4.2,yP+3,-1.5);g.add(dm);
-    const fin=new THREE.Mesh(new THREE.ConeGeometry(.12,.8,6),copper);fin.position.set(sdn*4.2,yP+5,-1.5);g.add(fin);B(.3,3.6,.3,white,sdn*2.6,yP+1.8,-1.5);}
-  for(let k=-5;k<=5;k++)B(.05,2.6+Math.cos(k/5*1.2)*.6,.05,iron,k*.46,yP+1.3,-1.5);B(5.2,.08,.08,iron,0,yP+.3,-1.5);B(5.2,.08,.08,iron,0,yP+2.5,-1.5);
-  const sg=new THREE.Mesh(new THREE.PlaneGeometry(5,.7),lam({map:signTex('WARRENPOINT BATHS 1908','#1f5c58','#f4efe0','700 46px Barlow, sans-serif'),side:THREE.DoubleSide}));sg.position.set(0,yP+3.7,-1.62);sg.rotation.y=Math.PI;g.add(sg);
-  // a flag at the end of the pier
-  B(.12,7,.12,white,0,deckY+3.5,46.5);const fl=new THREE.Mesh(new THREE.PlaneGeometry(1.6,1),lam({color:0x2a4f8c,side:THREE.DoubleSide}));fl.position.set(.85,deckY+6.4,46.5);g.add(fl);
-  SR.add(g);LMPOS.push([sx,sz],[sx+ax*20,sz+az*20]);}
+  // local frame: z runs out to sea from the promenade's edge, x runs along the promenade
+  const ox=sx-ax*2,oz=sz-az*2,ry=Math.atan2(ax,az);const g=new THREE.Group();g.position.set(ox,0,oz);g.rotation.y=ry;
+  const cx=Math.cos(ry),cz=-Math.sin(ry);const W=(lx,lz)=>[ox+cx*lx+ax*lz,oz+cz*lx+az*lz];
+  const granite=lam({map:TX.stone,color:0x9c988e}),cap=lam({map:TX.stone,color:0x86827a}),render=lam({color:0xf3f1ea}),render2=lam({color:0xe4e1d8}),white=lam({color:0xffffff}),iron=lam({color:0x16181b}),
+    roofM=lam({color:0xdedcd4,side:THREE.DoubleSide}),deckM=lam({color:0x3a3d40}),glass=lam({color:0x2c3a44,emissive:0x0d1418}),lit=lam({color:0xffd99a,emissive:0x7a5a2a}),pot=lam({color:0x6a5040}),leaf=lam({color:0x3e6a32}),flower=lam({color:0xd84a6a});
+  const B=(w,h,d,m,x,y,z,r=0)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);o.rotation.y=r;g.add(o);return o;};
+  const y0=yP;// pavement level
+  // ---- the granite wall along the promenade, a black iron gate in the middle, bollards on the pavement
+  for(const [a,b] of [[-11,-1.35],[1.35,11]]){const w=b-a,mx=(a+b)/2;B(w,1.15,.55,granite,mx,y0+.57,.25);B(w+.1,.12,.65,cap,mx,y0+1.2,.25);
+    const [wx,wz]=W(mx,.25);SOLIDS.push({box:1,x:wx,y:y0,z:wz,ry,w,d:.6,h:1.3});}
+  for(const sdn of [-1,1]){B(.75,1.55,.75,granite,sdn*1.65,y0+.77,.25);B(.85,.12,.85,cap,sdn*1.65,y0+1.6,.25);}
+  for(let k=0;k<11;k++)B(.04,1.35,.04,iron,-1.2+k*.24,y0+.7,.25);B(2.45,.06,.06,iron,0,y0+1.32,.25);B(2.45,.06,.06,iron,0,y0+.18,.25);B(2.45,.05,.05,iron,0,y0+.78,.25);
+  {const n=new THREE.Mesh(new THREE.PlaneGeometry(.26,.34),lam({color:0xf2d640}));n.position.set(.35,y0+.95,-.03);n.rotation.y=Math.PI;g.add(n);}
+  for(const bx of [-3.4,3.4]){const bo=new THREE.Mesh(new THREE.CylinderGeometry(.09,.1,.95,10),lam({color:0xc8c4ba}));bo.position.set(bx,y0+.47,-1.6);g.add(bo);const [wx,wz]=W(bx,-1.6);SOLIDS.push({box:1,x:wx,y:y0,z:wz,ry,w:.3,d:.3,h:1});}
+  // ---- the bath house below the promenade: white rendered blocks on the shore, flat roofs at the wall's height, small windows to the sea
+  const base=-1.6,roofY=y0+.95;
+  const block=(x,z,w,d,top)=>{const h=top-base;B(w,h,d,render,x,base+h/2,z);B(w+.3,.18,d+.3,render2,x,top+.09,z);
+    const deck=new THREE.Mesh(new THREE.PlaneGeometry(w-.2,d-.2),deckM);deck.rotation.x=-Math.PI/2;deck.position.set(x,top+.19,z);g.add(deck);
+    // white railings round the roof terrace
+    const rail=(x1,z1,x2,z2)=>{const l=Math.hypot(x2-x1,z2-z1),n=Math.max(2,Math.round(l/1.1));const r=Math.atan2(x2-x1,z2-z1);B(.07,.07,l,white,(x1+x2)/2,top+1.15,(z1+z2)/2,r);B(.05,.05,l,white,(x1+x2)/2,top+.65,(z1+z2)/2,r);for(let k=0;k<=n;k++)B(.07,1,.07,white,x1+(x2-x1)*k/n,top+.68,z1+(z2-z1)*k/n);};
+    const hx=w/2,hz=d/2;rail(x-hx,z+hz,x+hx,z+hz);rail(x-hx,z-hz,x-hx,z+hz);rail(x+hx,z-hz,x+hx,z+hz);
+    // windows on the seaward end and the sides: two small four-pane lights per bay, some lit
+    const win=(px,py,pz,r)=>{const f=B(.95,.95,.06,white,px,py,pz,r);const gl=B(.75,.75,.07,Math.random()<.35?lit:glass,px,py,pz,r);};
+    for(let k=-hx+1.6;k<hx-1;k+=2.4)win(x+k,top-1.6,z+hz+.03,0);for(let k=-hz+2.2;k<hz-1;k+=2.6){win(x+hx+.03,top-1.6,z+k,Math.PI/2);win(x-hx-.03,top-1.6,z+k,Math.PI/2);}
+    return top;};
+  block(4.2,9.5,12.4,13,roofY);block(-6.2,7.2,8.2,9,roofY-1.3);
+  // a raised plant room on the big roof, as in the old postcard
+  B(4.2,1.3,2.6,render,6.2,roofY+.84,5);
+  // ---- the walkway from the gate across to the pavilion, black railings either side
+  B(2.4,.14,4.6,deckM,0,roofY+.2,2.6);for(const sdn of [-1,1]){B(.06,.06,4.6,iron,sdn*1.2,roofY+1.25,2.6);for(let k=0;k<=5;k++)B(.05,1.05,.05,iron,sdn*1.2,roofY+.75,.3+k*.92);}
+  // ---- the pavilion: a white octagon-ish kiosk with a dark name band, tall windows with flower boxes, a hipped roof and a little glazed lantern with a finial
+  {const px=1.6,pz=6.3,pw=4,pd=3.8,ph=2.9,pb=roofY+.2;B(pw,ph,pd,render,px,pb+ph/2,pz);
+   const band=new THREE.Mesh(new THREE.BoxGeometry(pw+.08,.55,pd+.08),lam({color:0x1a1c22}));band.position.set(px,pb+ph-.45,pz);g.add(band);
+   const sgT=signTex('WARRENPOINT BATHS','#1a1c22','#f2a530','700 50px Barlow, sans-serif');for(const [r,dx,dz,w] of [[Math.PI,0,-pd/2-.06,pw],[Math.PI/2,pw/2+.06,0,pd],[-Math.PI/2,-pw/2-.06,0,pd]]){const sg=new THREE.Mesh(new THREE.PlaneGeometry(w*.92,.46),lam({map:sgT,emissive:0x3a2a10,emissiveMap:sgT}));sg.position.set(px+dx,pb+ph-.45,pz+dz);sg.rotation.y=r;g.add(sg);}
+   for(const [r,dx,dz] of [[Math.PI,-.95,-pd/2-.04],[Math.PI,.95,-pd/2-.04],[Math.PI/2,pw/2+.04,-.8],[Math.PI/2,pw/2+.04,.8],[-Math.PI/2,-pw/2-.04,0]]){const wx=px+dx,wz=pz+dz;
+     B(.9,1.45,.06,white,wx,pb+1.25,wz,r);B(.72,1.25,.07,Math.random()<.5?lit:glass,wx,pb+1.25,wz,r);
+     const ob=Math.abs(Math.sin(r))>.5?[Math.sign(dx)*.18,0]:[0,-.18];const bx=B(.8,.2,.25,pot,wx+ob[0],pb+.45,wz+ob[1],r);for(let k=0;k<4;k++){const f=new THREE.Mesh(new THREE.SphereGeometry(.12,6,5),k%2?flower:leaf);f.position.set(wx+ob[0]+(Math.abs(Math.sin(r))>.5?0:(k-1.5)*.18),pb+.62,wz+ob[1]+(Math.abs(Math.sin(r))>.5?(k-1.5)*.18:0));g.add(f);}}
+      const roof=new THREE.Mesh(new THREE.ConeGeometry(Math.hypot(pw,pd)/2+.35,1.3,4,1),roofM);roof.rotation.y=Math.PI/4;roof.position.set(px,pb+ph+.65,pz);g.add(roof);
+   B(pw+.5,.14,pd+.5,white,px,pb+ph+.03,pz);
+   const lan=B(.9,.7,.9,lam({color:0xfff2cc,emissive:0x8a6a30}),px,pb+ph+1.35,pz);const lr=new THREE.Mesh(new THREE.ConeGeometry(.75,.55,4),roofM);lr.rotation.y=Math.PI/4;lr.position.set(px,pb+ph+1.98,pz);g.add(lr);
+   const fin=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.9,6),iron);fin.position.set(px,pb+ph+2.6,pz);g.add(fin);B(.45,.04,.04,iron,px,pb+ph+2.75,pz);}
+  // ---- the old gazebo on the lower roof: slim white posts under a conical roof, with a flagpole
+  {const gx=-6.6,gz=6.2,gb=roofY-1.3+.2;for(let k=0;k<6;k++){const a=k/6*Math.PI*2;B(.1,2.3,.1,white,gx+Math.cos(a)*1.25,gb+1.15,gz+Math.sin(a)*1.25);}
+   const cr=new THREE.Mesh(new THREE.ConeGeometry(1.75,1.2,12,1,true),roofM);cr.position.set(gx,gb+2.9,gz);g.add(cr);B(.08,4.2,.08,white,gx,gb+4.8,gz);
+   const fl=new THREE.Mesh(new THREE.PlaneGeometry(1.3,.8),lam({color:0x2a4f8c,side:THREE.DoubleSide}));fl.position.set(gx+.68,gb+6.4,gz);g.add(fl);
+   for(let k=0;k<6;k++){const a=k/6*Math.PI*2+.5;const r=B(.05,.05,1.3,white,gx+Math.cos(a)*1.25,gb+.7,gz+Math.sin(a)*1.25,a);}}
+  // ---- a summer banner on two poles by the gate, like the one there now
+  {const bt=canvasTex(512,128,(c,w,h)=>{const gr=c.createLinearGradient(0,0,w,0);gr.addColorStop(0,'#1d56b8');gr.addColorStop(1,'#2a8ae0');c.fillStyle=gr;c.fillRect(0,0,w,h);c.fillStyle='#fff';c.fillRect(0,h-10,w,10);
+     c.fillStyle='#fff';c.font='700 46px Barlow,sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText('Sea Swimming & Water Sports',w/2+30,h/2-4);c.fillStyle='#163a7a';c.beginPath();c.moveTo(18,h-14);c.lineTo(60,26);c.lineTo(88,62);c.lineTo(104,44);c.lineTo(140,h-14);c.fill();});
+   const bn=new THREE.Mesh(new THREE.PlaneGeometry(4.6,1.15),lam({map:bt,side:THREE.DoubleSide}));bn.position.set(-2.3,roofY+3.2,3.9);bn.rotation.y=Math.PI;g.add(bn);B(.08,3.8,.08,iron,-4.6,roofY+1.9,3.95);}
+  SR.add(g);LMPOS.push([sx,sz],W(0,8),W(-8,6),W(8,6));BATHS_VIEW={front:W(0,-9),c:W(0,6),side:W(-16,-4),y:yP};}
+let BATHS_VIEW=null;
 function church(x,z,ry,{scale=1,big=false}={}){const g=new THREE.Group(),y=groundH(x,z),gran=lam({map:TX.stone,color:0xb3b0a8}),render=lam({map:TX.wall,color:0xd9d6cf}),slate=lam({map:TX.slate,flatShading:true}),dark=lam({color:0x1e2630});
   const L=big?36:24,W=big?13:10,H=big?11:8;
   const nave=new THREE.Mesh(new THREE.BoxGeometry(W,H+2,L),render);nave.position.y=H/2-1;g.add(nave);
@@ -2203,7 +2233,7 @@ function placeAtStart(){PL.x=MIS.start[0];PL.z=MIS.start[1];rig.position.set(PL.
 setTimeout(()=>{const _t=[performance.now()],_m=()=>_t.push(performance.now());decodeMap();_m();buildHeights();_m();buildLap();flattenHeights();_m();buildRacerTown();_m();clearForRacer();_m();buildGrids();_m();buildTown();_m();try{houseFronts();}catch(e){console.warn('house fronts',e);}_m();window.__boot=_t.map((v,i)=>i?Math.round(v-_t[i-1]):0);buildFlicker();buildPumpkins();applyTod();drawMapImage();state='menu';$('load').hidden=true;$('bPlay').disabled=false;$('bPlay').textContent='Start mission';useLevel();buildMenu();setupVR();applyHand();
   START=snapWalk(...MIS.start);END=snapWalk(...MIS.end);PL.x=START[0];PL.z=START[1];PL.yaw=Math.atan2(-(END[0]-START[0]),-(END[1]-START[1]));extractBuild();
   introStart();renderer.setAnimationLoop(frame);},30);
-window.__z={endBonusTest:(practice)=>{BON.practice=!!practice;BON.active=false;BON.done=true;BON.saved=true;finishMission();},nextInfo:()=>({next:!!NEXT,txt:$('endNext').textContent,lv:lvOf(),mis:MIS.id,state}),skipIntro:()=>introEnd(),introSim:(sec)=>{for(let k=0;k<sec*20;k++)introUpdate(.05);},get MAPIMG(){return MAPIMG;},ghost(dx,dy,dz){GH.push({x:PL.x+dx,z:PL.z+dz,y:H(PL.x,PL.z)+dy,h:0,a:1,ph:0,vx:0,vz:0,sw:0,hp:2,dead:0,life:30});},GH,pump:()=>PUMP?PUMP.n:0,allOn(){if(!WINMESH)return 0;for(const w of WST){w.t=99;w.m.setColorAt(w.i,new THREE.Color(0xff0000));w.m.instanceColor.needsUpdate=true;}return WST.length;},get state(){return state},PL,touch,UPG,OPT,applyTod,flick:()=>WST.length,wins:()=>WINS.length,inp:()=>readInput(),Z,LZ,MIS:()=>MIS,END:()=>END,kills:()=>kills,
+window.__z={bathsView:()=>BATHS_VIEW,endBonusTest:(practice)=>{BON.practice=!!practice;BON.active=false;BON.done=true;BON.saved=true;finishMission();},nextInfo:()=>({next:!!NEXT,txt:$('endNext').textContent,lv:lvOf(),mis:MIS.id,state}),skipIntro:()=>introEnd(),introSim:(sec)=>{for(let k=0;k<sec*20;k++)introUpdate(.05);},get MAPIMG(){return MAPIMG;},ghost(dx,dy,dz){GH.push({x:PL.x+dx,z:PL.z+dz,y:H(PL.x,PL.z)+dy,h:0,a:1,ph:0,vx:0,vz:0,sw:0,hp:2,dead:0,life:30});},GH,pump:()=>PUMP?PUMP.n:0,allOn(){if(!WINMESH)return 0;for(const w of WST){w.t=99;w.m.setColorAt(w.i,new THREE.Color(0xff0000));w.m.instanceColor.needsUpdate=true;}return WST.length;},get state(){return state},PL,touch,UPG,OPT,applyTod,flick:()=>WST.length,wins:()=>WINS.length,inp:()=>readInput(),Z,LZ,MIS:()=>MIS,END:()=>END,kills:()=>kills,
   pick:(i,d)=>{MIS=MISSIONS[i];if(typeof d==='number'){LEVEL[MIS.id]=d;useLevel();}else if(d){dkey=d;DIFF=DIFFS[d];PICKD=d;}},LEVEL,levelDiff,start:startMission,
   sim(n,f){const out=[];for(let i=0;i<n;i++){const inp=f?f(i):{mx:0,mz:0,fire:false,run:false};if(state==='play')step(1/60,inp);}return {state,T:+T.toFixed(1),hp:Math.round(PL.hp),kills,zombies:Z.length,heat:+LZ.heat.toFixed(2),x:Math.round(PL.x),z:Math.round(PL.z),hold:+holdT.toFixed(1)};},
   strike(n){STORM.strike(!!n);},bdump:(x0,z0,x1,z1)=>BUILD.filter(b=>b.cx>x0&&b.cx<x1&&b.cz>z0&&b.cz<z1).map(b=>({pts:b.pts.map(p=>[+p[0].toFixed(1),+p[1].toFixed(1)]),h:b.h})),lmdbg:()=>LMDBG,practiceBonus,rks:()=>[!!RKS.buf,RKS.buf?+RKS.buf.duration.toFixed(1):0,!!RKS.src,MU.rock],get kills(){return kills},get tip(){return [LZ.tip.x,LZ.tip.y,LZ.tip.z]},camPos(){camera.getWorldPosition(_v1);camera.getWorldDirection(_v2);return [_v1.x,_v1.y,_v1.z,_v2.x,_v2.y,_v2.z];},manual(on){MANUAL=on?1:null;},frameStep(dt,inp){frameBody(dt,inp);},zs:()=>Z,heightCheck(){let lapMax=0,lapAvg=0;for(let i=0;i<NS;i+=3){const p=P[i];for(const o of [-4,0,4]){const x=p.x+R[i].x*o,z=p.z+R[i].z*o;const dd=Math.abs(H(x,z)-(p.y-.04));lapAvg+=dd;lapMax=Math.max(lapMax,dd);}}
