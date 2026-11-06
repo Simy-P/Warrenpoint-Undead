@@ -1307,7 +1307,7 @@ const STORM=(()=>{const st={next:6+Math.random()*6,flash:0,seq:[],t:0,bolts:[],b
       const g=ctx.createGain();g.gain.setValueAtTime(.0001,t);let tt=t+(near?.02:.25);g.gain.exponentialRampToValueAtTime(gain,tt);
       while(tt<t+dur){const nt=tt+(.25+Math.random()*.6)/rate;g.gain.linearRampToValueAtTime(gain*(.25+Math.random()*.75)*Math.max(.05,1-(nt-t)/dur),nt);tt=nt;}
       g.gain.linearRampToValueAtTime(.0001,t+dur+.4);n.connect(f);f.connect(g);g.connect(out);n.start(t,Math.random());n.stop(t+dur+.5);}}
-  function update(dt){st.t+=dt;if(OPT.storm!==false&&(state==='play'||state==='menu')){st.next-=dt;if(st.next<=0){st.next=(OPT.tod==='night'?9:12)+Math.random()*20;strike(false);}}
+  function update(dt){st.t+=dt;if(OPT.storm!==false&&(state==='play'||state==='menu'||state==='intro')){st.next-=dt;if(st.next<=0){st.next=(OPT.tod==='night'?9:12)+Math.random()*20;strike(false);}}
     // flicker level from the sequence
     let f=0;for(let i=0;i<st.seq.length;i++){if(st.t>=st.seq[i][0])f=st.seq[i][1];}st.flash=f*(.85+.15*Math.random());
     for(let i=st.bolts.length-1;i>=0;i--){const b=st.bolts[i];b.life-=dt;const vis=b.life>0&&st.flash>.08;for(const m of b.meshes){m.visible=vis;m.material.opacity=Math.min(1,st.flash*1.3);}
@@ -2036,9 +2036,9 @@ const clock=new THREE.Clock();let hudT=0,cullT=0;
 let MANUAL=null;
 function frame(){if(MANUAL){clock.getDelta();return;}frameBody(Math.min(.05,clock.getDelta()),readInput());}
 function frameBody(dt,inp){musicIntensity(dt);STORM.update(dt);voxUpdate();VRM.update();VRH.update(dt);LASTDT=dt;
-  if(state==='play'){step(dt,inp);}else if(state==='end'){zombiesUpdate(dt);if(!renderer.xr.isPresenting&&false)rig.rotation.y+=dt*.1;}
+  if(state==='intro'){introUpdate(dt);}else if(state==='play'){step(dt,inp);}else if(state==='end'){zombiesUpdate(dt);if(!renderer.xr.isPresenting&&false)rig.rotation.y+=dt*.1;}
   // camera
-  if(!renderer.xr.isPresenting){syncCamera();
+  if(!renderer.xr.isPresenting){syncCamera();if(state==='intro'&&INTRO.cam){const c=INTRO.cam;rig.position.set(c[0],c[1],c[2]);rig.rotation.set(0,0,0);camera.position.set(0,0,0);rig.updateMatrixWorld(true);camera.lookAt(c[3],c[4],c[5]);}GUN.g.visible=state!=='intro';
     if(GUN.g.parent!==camera){camera.add(GUN.g);GUN.g.position.set(.16,-.16,-.4);GUN.g.rotation.set(.04,.06,0);GUN.g.scale.setScalar(.72);}GUN.g.position.y=-.16+Math.sin(PL.bob*.5)*.008+(LZ.firing?Math.random()*.003:0);}
   else if(rig.rotation.y!==PL.yaw){// snap-turn about the head, not the room's centre
     camera.getWorldPosition(_v1);rig.rotation.y=PL.yaw;rig.updateMatrixWorld(true);camera.getWorldPosition(_v2);rig.position.x+=_v1.x-_v2.x;rig.position.z+=_v1.z-_v2.z;}
@@ -2157,6 +2157,33 @@ $('bBonus').addEventListener('click',()=>{if(state==='loading')return;practiceBo
 $('bPlay').addEventListener('click',()=>{if(state==='paused'){state='play';$('title').hidden=true;$('hud').hidden=false;$('touch').hidden=!coarse;if(!coarse)view.requestPointerLock?.();return;}startMission();if(!coarse)view.requestPointerLock?.();});
 $('bAgain').addEventListener('click',()=>{if(BON.practice){practiceBonus();return;}startMission();if(!coarse)view.requestPointerLock?.();});$('bLab').addEventListener('click',()=>{state='menu';$('end').hidden=true;$('title').hidden=false;$('bPlay').textContent='Start mission';buildMenu();$('labH').scrollIntoView({behavior:'smooth'});});
 $('bMenu').addEventListener('click',()=>{state='menu';$('end').hidden=true;$('title').hidden=false;$('bPlay').textContent='Start mission';buildMenu();});
+
+// ================================================================ title screen: a slow fly-over of Warrenpoint with the hordes streaming through the streets towards the Square
+const INTRO={t:0,tgt:{x:0,z:0,hp:1e9},spawnT:0,cam:null};
+function introHorde(){const pick=()=>{const r=Math.random();return r<.12?'runner':r<.22?'brute':'walker';};const lead=trySpawn(55,125,'walker');if(!lead)return;lead.rise=0;const n=9+(Math.random()*4|0);
+  for(let k=0,tries=0;k<n&&tries<60;tries++){const a=Math.random()*Math.PI*2,r=1+Math.random()*4.5,x=lead.x+Math.cos(a)*r,z=lead.z+Math.sin(a)*r;if(blockedR(x,z,.45))continue;const ni=navIdx(x,z);if(ni<0||NAV[ni])continue;const zz=spawnZombie(x,z,pick());if(!zz)break;zz.rise=0;k++;}}
+function introStart(){const c=snapWalk(2,12);INTRO.tgt.x=c[0];INTRO.tgt.z=c[1];TGT=INTRO.tgt;Z.length=0;INTRO.t=0;INTRO.spawnT=0;PL.x=c[0];PL.z=c[1];flowField(c[0],c[1]);for(let k=0;k<4;k++)introHorde();
+  for(const z of Z){z.rise=0;}// already up and walking
+  $('title').hidden=true;$('hud').hidden=true;$('intro').hidden=false;$('pressTxt').textContent=coarse?'Tap to start':'Click or press any key';state='intro';}
+function introUpdate(dt){const t=(INTRO.t+=dt);zombiesUpdate(dt);
+  for(let i=Z.length-1;i>=0;i--){const z=Z[i];if(!z.dead&&Math.hypot(z.x-INTRO.tgt.x,z.z-INTRO.tgt.z)<6)Z.splice(i,1);}
+  if((INTRO.spawnT-=dt)<=0){INTRO.spawnT=2;if(Z.length<ZMAX-12)introHorde();}
+  // follow a horde: pick the zombie with the most company, circle it, then swoop to another every ~13 s
+  if(!INTRO.lead||INTRO.lead.dead||!Z.includes(INTRO.lead)||(INTRO.leadT-=dt)<=0){let best=null,bn=-1;for(const z of Z){if(z.dead||Math.hypot(z.x-INTRO.tgt.x,z.z-INTRO.tgt.z)<25)continue;let n=0;for(const o of Z)if(Math.abs(o.x-z.x)<9&&Math.abs(o.z-z.z)<9)n++;n+=Math.random()*2;if(z===INTRO.lead)n-=4;if(n>bn){bn=n;best=z;}}
+    if(best){INTRO.lead=best;INTRO.leadT=13;}}
+  const L=INTRO.lead;let fx=INTRO.tgt.x,fz=INTRO.tgt.z;if(L){let sx=0,sz=0,n=0;for(const o of Z)if(!o.dead&&Math.abs(o.x-L.x)<10&&Math.abs(o.z-L.z)<10){sx+=o.x;sz+=o.z;n++;}fx=sx/n;fz=sz/n;}
+  if(!INTRO.f){INTRO.f=[fx,fz];}const k=Math.min(1,dt*.8);INTRO.f[0]+=(fx-INTRO.f[0])*k;INTRO.f[1]+=(fz-INTRO.f[1])*k;
+  const a=t*.16,R=15+4*Math.sin(t*.23),y=8+3*Math.sin(t*.19+1);const want=[INTRO.f[0]+Math.cos(a)*R,INTRO.f[1]+Math.sin(a)*R];
+  if(!INTRO.p)INTRO.p=[want[0],want[1]];const kp=Math.min(1,dt*.9);INTRO.p[0]+=(want[0]-INTRO.p[0])*kp;INTRO.p[1]+=(want[1]-INTRO.p[1])*kp;
+  const x=INTRO.p[0],z=INTRO.p[1],gy=H(INTRO.f[0],INTRO.f[1]);INTRO.cam=[x,Math.max(H(x,z),gy)+y,z,INTRO.f[0],gy+5.5,INTRO.f[1]];PL.x=x;PL.z=z;}
+function introEnd(){if(state!=='intro')return;audioInit();state='menu';Z.length=0;TGT=PL;INTRO.cam=null;GUN.g.visible=true;
+  if(START){PL.x=START[0];PL.z=START[1];PL.yaw=Math.atan2(-(END[0]-START[0]),-(END[1]-START[1]));}
+  $('intro').hidden=true;$('title').hidden=false;try{STORM.strike(false);}catch(e){}}
+$('intro').addEventListener('click',introEnd);
+addEventListener('keydown',e=>{if(state==='intro'&&$('credits').hidden&&!e.repeat){introEnd();}});
+for(const id of ['bCredits1','bCredits2'])$(id).addEventListener('click',e=>{e.stopPropagation();$('credits').hidden=false;});
+$('bCreditsClose').addEventListener('click',e=>{e.stopPropagation();$('credits').hidden=true;});
+$('credits').addEventListener('click',e=>{e.stopPropagation();if(e.target.id==='credits')$('credits').hidden=true;});
 async function setupVR(){if(!navigator.xr)return;try{if(!await navigator.xr.isSessionSupported('immersive-vr'))return;}catch(e){return;}const b=$('bVR');b.hidden=false;
   b.addEventListener('click',async()=>{audioInit();try{const s=await navigator.xr.requestSession('immersive-vr',{optionalFeatures:['local-floor']});renderer.xr.setReferenceSpaceType('local-floor');await renderer.xr.setSession(s);
     s.addEventListener('end',()=>{VRM.close();state=state==='play'?'paused':state;$('title').hidden=false;$('bPlay').textContent=state==='paused'?'Resume':'Start mission';camera.add(GUN.g);});
@@ -2166,8 +2193,8 @@ function placeAtStart(){PL.x=MIS.start[0];PL.z=MIS.start[1];rig.position.set(PL.
 // ================================================================ boot
 setTimeout(()=>{const _t=[performance.now()],_m=()=>_t.push(performance.now());decodeMap();_m();buildHeights();_m();buildLap();flattenHeights();_m();buildRacerTown();_m();clearForRacer();_m();buildGrids();_m();buildTown();_m();try{houseFronts();}catch(e){console.warn('house fronts',e);}_m();window.__boot=_t.map((v,i)=>i?Math.round(v-_t[i-1]):0);buildFlicker();buildPumpkins();applyTod();drawMapImage();state='menu';$('load').hidden=true;$('bPlay').disabled=false;$('bPlay').textContent='Start mission';useLevel();buildMenu();setupVR();applyHand();
   START=snapWalk(...MIS.start);END=snapWalk(...MIS.end);PL.x=START[0];PL.z=START[1];PL.yaw=Math.atan2(-(END[0]-START[0]),-(END[1]-START[1]));extractBuild();
-  renderer.setAnimationLoop(frame);},30);
-window.__z={get MAPIMG(){return MAPIMG;},ghost(dx,dy,dz){GH.push({x:PL.x+dx,z:PL.z+dz,y:H(PL.x,PL.z)+dy,h:0,a:1,ph:0,vx:0,vz:0,sw:0,hp:2,dead:0,life:30});},GH,pump:()=>PUMP?PUMP.n:0,allOn(){if(!WINMESH)return 0;for(const w of WST){w.t=99;w.m.setColorAt(w.i,new THREE.Color(0xff0000));w.m.instanceColor.needsUpdate=true;}return WST.length;},get state(){return state},PL,touch,UPG,OPT,applyTod,flick:()=>WST.length,wins:()=>WINS.length,inp:()=>readInput(),Z,LZ,MIS:()=>MIS,END:()=>END,kills:()=>kills,
+  introStart();renderer.setAnimationLoop(frame);},30);
+window.__z={skipIntro:()=>introEnd(),introSim:(sec)=>{for(let k=0;k<sec*20;k++)introUpdate(.05);},get MAPIMG(){return MAPIMG;},ghost(dx,dy,dz){GH.push({x:PL.x+dx,z:PL.z+dz,y:H(PL.x,PL.z)+dy,h:0,a:1,ph:0,vx:0,vz:0,sw:0,hp:2,dead:0,life:30});},GH,pump:()=>PUMP?PUMP.n:0,allOn(){if(!WINMESH)return 0;for(const w of WST){w.t=99;w.m.setColorAt(w.i,new THREE.Color(0xff0000));w.m.instanceColor.needsUpdate=true;}return WST.length;},get state(){return state},PL,touch,UPG,OPT,applyTod,flick:()=>WST.length,wins:()=>WINS.length,inp:()=>readInput(),Z,LZ,MIS:()=>MIS,END:()=>END,kills:()=>kills,
   pick:(i,d)=>{MIS=MISSIONS[i];if(typeof d==='number'){LEVEL[MIS.id]=d;useLevel();}else if(d){dkey=d;DIFF=DIFFS[d];PICKD=d;}},LEVEL,levelDiff,start:startMission,
   sim(n,f){const out=[];for(let i=0;i<n;i++){const inp=f?f(i):{mx:0,mz:0,fire:false,run:false};if(state==='play')step(1/60,inp);}return {state,T:+T.toFixed(1),hp:Math.round(PL.hp),kills,zombies:Z.length,heat:+LZ.heat.toFixed(2),x:Math.round(PL.x),z:Math.round(PL.z),hold:+holdT.toFixed(1)};},
   strike(n){STORM.strike(!!n);},bdump:(x0,z0,x1,z1)=>BUILD.filter(b=>b.cx>x0&&b.cx<x1&&b.cz>z0&&b.cz<z1).map(b=>({pts:b.pts.map(p=>[+p[0].toFixed(1),+p[1].toFixed(1)]),h:b.h})),lmdbg:()=>LMDBG,practiceBonus,rks:()=>[!!RKS.buf,RKS.buf?+RKS.buf.duration.toFixed(1):0,!!RKS.src,MU.rock],get kills(){return kills},get tip(){return [LZ.tip.x,LZ.tip.y,LZ.tip.z]},camPos(){camera.getWorldPosition(_v1);camera.getWorldDirection(_v2);return [_v1.x,_v1.y,_v1.z,_v2.x,_v2.y,_v2.z];},manual(on){MANUAL=on?1:null;},frameStep(dt,inp){frameBody(dt,inp);},zs:()=>Z,heightCheck(){let lapMax=0,lapAvg=0;for(let i=0;i<NS;i+=3){const p=P[i];for(const o of [-4,0,4]){const x=p.x+R[i].x*o,z=p.z+R[i].z*o;const dd=Math.abs(H(x,z)-(p.y-.04));lapAvg+=dd;lapMax=Math.max(lapMax,dd);}}

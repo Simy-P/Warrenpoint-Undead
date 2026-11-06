@@ -1,6 +1,6 @@
-# Warrenpoint Undead
+# Warrenpoint of No Return
 
-A zombie survival game set on the streets of Warrenpoint, playable on desktop, touch screens and in VR (WebXR, e.g. Meta Quest).
+*Come for the views, Run for your life!* A SimyP Productions zombie survival game set on the streets of Warrenpoint, playable on desktop, touch screens and in VR (WebXR, e.g. Meta Quest).
 
 **Play:** serve this folder over http(s) and open `index.html`. With GitHub Pages turned on for this repo (Settings → Pages → deploy from `main`, root), the game runs at the Pages address, and VR works there because it's HTTPS.
 
